@@ -70,8 +70,27 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<Invoice> get filteredInvoices {
+  List<Invoice> get dateFilteredInvoices {
+    if (!hasDateFilter) return _invoices;
     return _invoices.where((inv) {
+      if (_startDate != null) {
+        final start = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+        final invDate = DateTime(inv.date.year, inv.date.month, inv.date.day);
+        if (invDate.isBefore(start)) return false;
+      }
+      if (_endDate != null) {
+        final end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
+        if (inv.date.isAfter(end)) return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  List<Invoice> get activeInvoicesForStats => hasDateFilter ? dateFilteredInvoices : _invoices;
+
+  List<Invoice> get filteredInvoices {
+    final base = activeInvoicesForStats;
+    return base.where((inv) {
       final matchesSearch = _searchQuery.isEmpty ||
           inv.invoiceNumber.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           inv.client.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -79,18 +98,7 @@ class InvoiceProvider extends ChangeNotifier {
 
       final matchesStatus = _selectedStatus == 'all' || inv.status.toLowerCase() == _selectedStatus.toLowerCase();
 
-      bool matchesDate = true;
-      if (_startDate != null) {
-        final start = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
-        final invDate = DateTime(inv.date.year, inv.date.month, inv.date.day);
-        if (invDate.isBefore(start)) matchesDate = false;
-      }
-      if (_endDate != null) {
-        final end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
-        if (inv.date.isAfter(end)) matchesDate = false;
-      }
-
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesStatus;
     }).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
   }
@@ -198,12 +206,20 @@ class InvoiceProvider extends ChangeNotifier {
     }
   }
 
-  // --- Statistics ---
-  double get totalInvoiced => _invoices.fold(0.0, (sum, inv) => sum + inv.grandTotal);
-  double get totalPaid => _invoices
+  // --- Statistics & Counts (Dynamically reflect date filter if active) ---
+  int get countAll => activeInvoicesForStats.length;
+  int get countPaid => activeInvoicesForStats
+      .where((inv) => inv.status.toLowerCase() == 'paid')
+      .length;
+  int get countPending => activeInvoicesForStats
+      .where((inv) => inv.status.toLowerCase() == 'pending')
+      .length;
+
+  double get totalInvoiced => activeInvoicesForStats.fold(0.0, (sum, inv) => sum + inv.grandTotal);
+  double get totalPaid => activeInvoicesForStats
       .where((inv) => inv.status.toLowerCase() == 'paid')
       .fold(0.0, (sum, inv) => sum + inv.grandTotal);
-  double get totalPending => _invoices
+  double get totalPending => activeInvoicesForStats
       .where((inv) => inv.status.toLowerCase() == 'pending')
       .fold(0.0, (sum, inv) => sum + inv.grandTotal);
 }

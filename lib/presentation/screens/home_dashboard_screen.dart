@@ -249,7 +249,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   _buildFilterChip(
                     context,
                     label: lang.tr('all'),
-                    count: invoiceProvider.invoices.length,
+                    count: invoiceProvider.countAll,
                     isSelected: invoiceProvider.selectedStatus == 'all',
                     onTap: () {
                       invoiceProvider.setStatusFilter('all');
@@ -260,7 +260,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   _buildFilterChip(
                     context,
                     label: lang.tr('paid'),
-                    count: invoiceProvider.invoices.where((i) => i.status == 'paid').length,
+                    count: invoiceProvider.countPaid,
                     isSelected: invoiceProvider.selectedStatus == 'paid',
                     color: AppColors.statusPaid,
                     onTap: () {
@@ -272,7 +272,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   _buildFilterChip(
                     context,
                     label: lang.tr('pending'),
-                    count: invoiceProvider.invoices.where((i) => i.status == 'pending').length,
+                    count: invoiceProvider.countPending,
                     isSelected: invoiceProvider.selectedStatus == 'pending',
                     color: AppColors.statusPending,
                     onTap: () {
@@ -375,13 +375,37 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            lang.tr('total_invoiced'),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Colors.white.withValues(alpha: 0.85),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                lang.tr('total_invoiced'),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withValues(alpha: 0.85),
+                ),
+              ),
+              if (provider.hasDateFilter)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.filter_alt, size: 12, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text(
+                        'Filtered',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
