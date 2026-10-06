@@ -17,7 +17,8 @@ class PaginationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (totalItems == 0) return const SizedBox.shrink();
+    // Only display pagination when items exceed the limit (e.g. > 10 items)
+    if (totalItems <= itemsPerPage) return const SizedBox.shrink();
 
     final totalPages = (totalItems / itemsPerPage).ceil().clamp(1, 999999);
     final startIndex = (currentPage - 1) * itemsPerPage + 1;
