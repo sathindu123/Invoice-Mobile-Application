@@ -20,6 +20,10 @@ class InvoiceProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   String get selectedStatus => _selectedStatus;
 
+  // Public notify for external mutations (e.g., ManageContactsScreen)
+  @override
+  void notifyListeners() => super.notifyListeners();
+
   InvoiceProvider() {
     init();
   }

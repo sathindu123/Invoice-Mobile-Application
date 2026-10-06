@@ -4,12 +4,14 @@ import '../models/business_profile.dart';
 import '../models/client_model.dart';
 import '../models/invoice_item_model.dart';
 import '../models/invoice_model.dart';
+import '../models/reminder_model.dart';
 
 class StorageService {
   static const String _invoicesKey = 'app_invoices_list';
   static const String _clientsKey = 'app_saved_clients';
   static const String _itemsKey = 'app_saved_items';
   static const String _businessProfileKey = 'app_business_profile';
+  static const String _remindersKey = 'app_reminders_list';
 
   // --- INVOICES ---
   static Future<List<Invoice>> loadInvoices() async {
@@ -95,4 +97,24 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_businessProfileKey, jsonEncode(profile.toJson()));
   }
+
+  // --- REMINDERS ---
+  static Future<List<Reminder>> loadReminders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_remindersKey);
+    if (jsonString == null || jsonString.isEmpty) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonString);
+      return list.map((item) => Reminder.fromJson(Map<String, dynamic>.from(item))).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<void> saveReminders(List<Reminder> reminders) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = reminders.map((r) => r.toJson()).toList();
+    await prefs.setString(_remindersKey, jsonEncode(jsonList));
+  }
 }
+

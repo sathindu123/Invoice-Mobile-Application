@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
@@ -7,10 +6,7 @@ import '../../core/utils/currency_helper.dart';
 import '../../data/providers/business_provider.dart';
 import '../../data/providers/invoice_provider.dart';
 import '../widgets/invoice_card.dart';
-import 'business_settings_screen.dart';
-import 'create_invoice_screen.dart';
 import 'invoice_details_screen.dart';
-import 'language_settings_screen.dart';
 
 class HomeDashboardScreen extends StatelessWidget {
   const HomeDashboardScreen({super.key});
@@ -22,141 +18,47 @@ class HomeDashboardScreen extends StatelessWidget {
     final businessProvider = Provider.of<BusinessProvider>(context);
     final profile = businessProvider.profile;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        titleSpacing: 16,
-        title: Row(
+    if (invoiceProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => await invoiceProvider.init(),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (profile.logoPath != null && File(profile.logoPath!).existsSync())
-              Container(
-                width: 38,
-                height: 38,
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border),
-                  image: DecorationImage(
-                    image: FileImage(File(profile.logoPath!)),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              )
-            else
-              Container(
-                width: 38,
-                height: 38,
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.receipt_long, color: Colors.white, size: 20),
+            // Statistics Overview Cards
+            _buildStatsRow(context, invoiceProvider, profile.defaultCurrency, lang),
+
+            const SizedBox(height: 20),
+
+            // Search Bar
+            TextField(
+              decoration: InputDecoration(
+                hintText: lang.tr('search'),
+                prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
+                fillColor: Colors.white,
+                filled: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                suffixIcon: invoiceProvider.searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => invoiceProvider.setSearchQuery(''),
+                      )
+                    : null,
               ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    profile.name.isNotEmpty ? profile.name : lang.tr('app_name'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    lang.tr('dashboard'),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
+              onChanged: (val) => invoiceProvider.setSearchQuery(val),
             ),
-          ],
-        ),
-        actions: [
-          // Language Quick Button
-          IconButton(
-            icon: const Icon(Icons.translate_outlined),
-            tooltip: lang.tr('language_settings'),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()),
-              );
-            },
-          ),
-          // Business Settings Button
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: lang.tr('settings'),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const BusinessSettingsScreen()),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: Text(
-          lang.tr('create_invoice'),
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CreateInvoiceScreen()),
-          );
-        },
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await invoiceProvider.init();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Statistics Overview Cards
-              _buildStatsRow(context, invoiceProvider, profile.defaultCurrency, lang),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 14),
 
-              // Search Bar
-              TextField(
-                decoration: InputDecoration(
-                  hintText: lang.tr('search'),
-                  prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
-                  fillColor: Colors.white,
-                  filled: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  suffixIcon: invoiceProvider.searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () => invoiceProvider.setSearchQuery(''),
-                        )
-                      : null,
-                ),
-                onChanged: (val) => invoiceProvider.setSearchQuery(val),
-              ),
-
-              const SizedBox(height: 14),
-
-              // Status Filter Tabs
-              Row(
+            // Status Filter Tabs
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
                 children: [
                   _buildFilterChip(
                     context,
@@ -185,61 +87,61 @@ class HomeDashboardScreen extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-              // Section Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    lang.tr('recent_invoices'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+            // Section Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  lang.tr('recent_invoices'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
                   ),
-                  Text(
-                    '${invoiceProvider.filteredInvoices.length} ${lang.tr('invoices')}',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                  ),
-                ],
+                ),
+                Text(
+                  '${invoiceProvider.filteredInvoices.length} ${lang.tr('invoices')}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Invoices List or Empty State
+            if (invoiceProvider.filteredInvoices.isEmpty)
+              _buildEmptyState(context, lang)
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: invoiceProvider.filteredInvoices.length,
+                itemBuilder: (context, index) {
+                  final invoice = invoiceProvider.filteredInvoices[index];
+                  return InvoiceCard(
+                    invoice: invoice,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => InvoiceDetailsScreen(invoiceId: invoice.id),
+                        ),
+                      );
+                    },
+                    onStatusToggle: () {
+                      final nextStatus = invoice.status == 'paid' ? 'pending' : 'paid';
+                      invoiceProvider.updateStatus(invoice.id, nextStatus);
+                    },
+                  );
+                },
               ),
 
-              const SizedBox(height: 12),
-
-              // Invoices List or Empty State
-              if (invoiceProvider.filteredInvoices.isEmpty)
-                _buildEmptyState(context, lang)
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: invoiceProvider.filteredInvoices.length,
-                  itemBuilder: (context, index) {
-                    final invoice = invoiceProvider.filteredInvoices[index];
-                    return InvoiceCard(
-                      invoice: invoice,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => InvoiceDetailsScreen(invoiceId: invoice.id),
-                          ),
-                        );
-                      },
-                      onStatusToggle: () {
-                        final nextStatus = invoice.status == 'paid' ? 'pending' : 'paid';
-                        invoiceProvider.updateStatus(invoice.id, nextStatus);
-                      },
-                    );
-                  },
-                ),
-
-              const SizedBox(height: 70), // Bottom padding for FAB
-            ],
-          ),
+            const SizedBox(height: 90), // Bottom padding for FAB + nav bar
+          ],
         ),
       ),
     );
@@ -258,7 +160,7 @@ class HomeDashboardScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.25),
+            color: AppColors.primary.withValues(alpha: 0.25),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -272,7 +174,7 @@ class HomeDashboardScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Colors.white.withOpacity(0.85),
+              color: Colors.white.withValues(alpha: 0.85),
             ),
           ),
           const SizedBox(height: 4),
@@ -289,7 +191,7 @@ class HomeDashboardScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
+              color: Colors.white.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -305,7 +207,7 @@ class HomeDashboardScreen extends StatelessWidget {
                       children: [
                         Text(
                           lang.tr('paid_amount'),
-                          style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.8)),
+                          style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.8)),
                         ),
                         Text(
                           CurrencyHelper.formatAmount(provider.totalPaid, currency),
@@ -319,7 +221,7 @@ class HomeDashboardScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                Container(width: 1, height: 28, color: Colors.white.withOpacity(0.2)),
+                Container(width: 1, height: 28, color: Colors.white.withValues(alpha: 0.2)),
                 // Pending
                 Row(
                   children: [
@@ -330,7 +232,7 @@ class HomeDashboardScreen extends StatelessWidget {
                       children: [
                         Text(
                           lang.tr('unpaid_amount'),
-                          style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.8)),
+                          style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.8)),
                         ),
                         Text(
                           CurrencyHelper.formatAmount(provider.totalPending, currency),
@@ -389,7 +291,7 @@ class HomeDashboardScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white.withOpacity(0.25) : AppColors.border,
+                color: isSelected ? Colors.white.withValues(alpha: 0.25) : AppColors.border,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -423,7 +325,7 @@ class HomeDashboardScreen extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: AppColors.primaryLight.withOpacity(0.1),
+              color: AppColors.primaryLight.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.receipt_long_outlined, size: 32, color: AppColors.primaryLight),
