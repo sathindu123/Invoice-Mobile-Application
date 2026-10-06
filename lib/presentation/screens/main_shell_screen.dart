@@ -143,9 +143,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
                   badge: reminderBadge,
                 ),
                 _buildNavItem(
-                  icon: Icons.people_outline,
-                  activeIcon: Icons.people,
-                  label: 'Contacts',
+                  icon: Icons.domain_outlined,
+                  activeIcon: Icons.domain,
+                  label: lang.tr('entities'),
                   index: 2,
                 ),
               ],
@@ -160,7 +160,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     switch (index) {
       case 0: return lang.tr('dashboard');
       case 1: return 'Reminders & Notices';
-      case 2: return 'Clients & Items';
+      case 2: return 'Entities (Customers & Items)';
       default: return lang.tr('dashboard');
     }
   }

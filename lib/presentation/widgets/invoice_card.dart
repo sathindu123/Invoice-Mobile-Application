@@ -43,7 +43,7 @@ class InvoiceCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
+                      color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -61,9 +61,9 @@ class InvoiceCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.12),
+                        color: statusColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: statusColor.withOpacity(0.4), width: 1),
+                        border: Border.all(color: statusColor.withValues(alpha: 0.4), width: 1),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -85,12 +85,12 @@ class InvoiceCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              // Client Name
+              // Customer Name
               Row(
                 children: [
                   CircleAvatar(
                     radius: 16,
-                    backgroundColor: AppColors.primaryLight.withOpacity(0.12),
+                    backgroundColor: AppColors.primaryLight.withValues(alpha: 0.12),
                     child: Text(
                       invoice.client.name.isNotEmpty
                           ? invoice.client.name.substring(0, 1).toUpperCase()
@@ -108,7 +108,7 @@ class InvoiceCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          invoice.client.name.isNotEmpty ? invoice.client.name : 'Unknown Client',
+                          invoice.client.name.isNotEmpty ? invoice.client.name : 'Unknown Customer',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,

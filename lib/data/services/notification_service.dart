@@ -80,7 +80,7 @@ class NotificationService {
     final isInFuture = scheduledDate.isAfter(now);
 
     final bodyText = [
-      if (reminder.clientName.isNotEmpty) 'Client: ${reminder.clientName}',
+      if (reminder.clientName.isNotEmpty) 'Customer: ${reminder.clientName}',
       if (reminder.itemDescription.isNotEmpty) 'Item: ${reminder.itemDescription}',
       if (reminder.description.isNotEmpty) reminder.description,
     ].join(' | ');

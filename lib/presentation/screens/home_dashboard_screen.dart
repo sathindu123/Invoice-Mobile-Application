@@ -1,15 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/localization/language_provider.dart';
 import '../../core/utils/currency_helper.dart';
 import '../../data/providers/business_provider.dart';
 import '../../data/providers/invoice_provider.dart';
 import '../widgets/invoice_card.dart';
+import '../widgets/pagination_bar.dart';
 import 'invoice_details_screen.dart';
 
-class HomeDashboardScreen extends StatelessWidget {
+class HomeDashboardScreen extends StatefulWidget {
   const HomeDashboardScreen({super.key});
+
+  @override
+  State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
+}
+
+class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
+  int _currentPage = 1;
+  static const int _itemsPerPage = 10;
+
+  Future<void> _pickFromDate(BuildContext context, InvoiceProvider provider) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: provider.startDate ?? now,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      helpText: 'Select From Date',
+    );
+    if (picked != null) {
+      provider.setDateRange(picked, provider.endDate);
+      setState(() => _currentPage = 1);
+    }
+  }
+
+  Future<void> _pickToDate(BuildContext context, InvoiceProvider provider) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: provider.endDate ?? provider.startDate ?? now,
+      firstDate: provider.startDate ?? DateTime(2020),
+      lastDate: DateTime(2035),
+      helpText: 'Select To Date',
+    );
+    if (picked != null) {
+      provider.setDateRange(provider.startDate, picked);
+      setState(() => _currentPage = 1);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +61,17 @@ class HomeDashboardScreen extends StatelessWidget {
     if (invoiceProvider.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    final allFiltered = invoiceProvider.filteredInvoices;
+    final totalItems = allFiltered.length;
+    final totalPages = (totalItems / _itemsPerPage).ceil().clamp(1, 999999);
+    if (_currentPage > totalPages) {
+      _currentPage = 1;
+    }
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    final pageInvoices = allFiltered.skip(startIndex).take(_itemsPerPage).toList();
+
+    final dateFormat = DateFormat('dd MMM yyyy');
 
     return RefreshIndicator(
       onRefresh: () async => await invoiceProvider.init(),
@@ -46,14 +97,149 @@ class HomeDashboardScreen extends StatelessWidget {
                 suffixIcon: invoiceProvider.searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () => invoiceProvider.setSearchQuery(''),
+                        onPressed: () {
+                          invoiceProvider.setSearchQuery('');
+                          setState(() => _currentPage = 1);
+                        },
                       )
                     : null,
               ),
-              onChanged: (val) => invoiceProvider.setSearchQuery(val),
+              onChanged: (val) {
+                invoiceProvider.setSearchQuery(val);
+                setState(() => _currentPage = 1);
+              },
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
+
+            // Date Range Filter Bar
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: invoiceProvider.hasDateFilter
+                      ? AppColors.primary.withValues(alpha: 0.5)
+                      : AppColors.border,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_month_outlined, size: 18, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  // From Date Chip
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _pickFromDate(context, invoiceProvider),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: invoiceProvider.startDate != null
+                              ? AppColors.primary.withValues(alpha: 0.08)
+                              : AppColors.background,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: invoiceProvider.startDate != null
+                                ? AppColors.primary.withValues(alpha: 0.3)
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              lang.tr('from_date'),
+                              style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+                            ),
+                            Text(
+                              invoiceProvider.startDate != null
+                                  ? dateFormat.format(invoiceProvider.startDate!)
+                                  : 'Select',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: invoiceProvider.startDate != null
+                                    ? FontWeight.w700
+                                    : FontWeight.normal,
+                                color: invoiceProvider.startDate != null
+                                    ? AppColors.textPrimary
+                                    : AppColors.textMuted,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6),
+                    child: Icon(Icons.arrow_forward, size: 14, color: AppColors.textMuted),
+                  ),
+
+                  // To Date Chip
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _pickToDate(context, invoiceProvider),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: invoiceProvider.endDate != null
+                              ? AppColors.primary.withValues(alpha: 0.08)
+                              : AppColors.background,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: invoiceProvider.endDate != null
+                                ? AppColors.primary.withValues(alpha: 0.3)
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              lang.tr('to_date'),
+                              style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+                            ),
+                            Text(
+                              invoiceProvider.endDate != null
+                                  ? dateFormat.format(invoiceProvider.endDate!)
+                                  : 'Select',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: invoiceProvider.endDate != null
+                                    ? FontWeight.w700
+                                    : FontWeight.normal,
+                                color: invoiceProvider.endDate != null
+                                    ? AppColors.textPrimary
+                                    : AppColors.textMuted,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Clear Date Filter Button
+                  if (invoiceProvider.hasDateFilter)
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 18, color: Colors.red),
+                      tooltip: lang.tr('clear_filter'),
+                      onPressed: () {
+                        invoiceProvider.clearDateRange();
+                        setState(() => _currentPage = 1);
+                      },
+                    ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
 
             // Status Filter Tabs
             SingleChildScrollView(
@@ -65,7 +251,10 @@ class HomeDashboardScreen extends StatelessWidget {
                     label: lang.tr('all'),
                     count: invoiceProvider.invoices.length,
                     isSelected: invoiceProvider.selectedStatus == 'all',
-                    onTap: () => invoiceProvider.setStatusFilter('all'),
+                    onTap: () {
+                      invoiceProvider.setStatusFilter('all');
+                      setState(() => _currentPage = 1);
+                    },
                   ),
                   const SizedBox(width: 8),
                   _buildFilterChip(
@@ -74,7 +263,10 @@ class HomeDashboardScreen extends StatelessWidget {
                     count: invoiceProvider.invoices.where((i) => i.status == 'paid').length,
                     isSelected: invoiceProvider.selectedStatus == 'paid',
                     color: AppColors.statusPaid,
-                    onTap: () => invoiceProvider.setStatusFilter('paid'),
+                    onTap: () {
+                      invoiceProvider.setStatusFilter('paid');
+                      setState(() => _currentPage = 1);
+                    },
                   ),
                   const SizedBox(width: 8),
                   _buildFilterChip(
@@ -83,7 +275,10 @@ class HomeDashboardScreen extends StatelessWidget {
                     count: invoiceProvider.invoices.where((i) => i.status == 'pending').length,
                     isSelected: invoiceProvider.selectedStatus == 'pending',
                     color: AppColors.statusPending,
-                    onTap: () => invoiceProvider.setStatusFilter('pending'),
+                    onTap: () {
+                      invoiceProvider.setStatusFilter('pending');
+                      setState(() => _currentPage = 1);
+                    },
                   ),
                 ],
               ),
@@ -104,7 +299,7 @@ class HomeDashboardScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${invoiceProvider.filteredInvoices.length} ${lang.tr('invoices')}',
+                  '$totalItems ${lang.tr('invoices')}',
                   style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
@@ -113,15 +308,15 @@ class HomeDashboardScreen extends StatelessWidget {
             const SizedBox(height: 12),
 
             // Invoices List or Empty State
-            if (invoiceProvider.filteredInvoices.isEmpty)
+            if (totalItems == 0)
               _buildEmptyState(context, lang)
-            else
+            else ...[
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: invoiceProvider.filteredInvoices.length,
+                itemCount: pageInvoices.length,
                 itemBuilder: (context, index) {
-                  final invoice = invoiceProvider.filteredInvoices[index];
+                  final invoice = pageInvoices[index];
                   return InvoiceCard(
                     invoice: invoice,
                     onTap: () {
@@ -139,6 +334,17 @@ class HomeDashboardScreen extends StatelessWidget {
                   );
                 },
               ),
+
+              // Pagination Bar
+              PaginationBar(
+                currentPage: _currentPage,
+                totalItems: totalItems,
+                itemsPerPage: _itemsPerPage,
+                onPageChanged: (newPage) {
+                  setState(() => _currentPage = newPage);
+                },
+              ),
+            ],
 
             const SizedBox(height: 90), // Bottom padding for FAB + nav bar
           ],

@@ -197,14 +197,14 @@ class _CreateReminderScreenState extends State<CreateReminderScreen> {
 
             const SizedBox(height: 20),
 
-            // Client
-            _buildSectionLabel('👤 Client (Optional)'),
+            // Customer
+            _buildSectionLabel('👤 Customer (Optional)'),
             const SizedBox(height: 6),
             Column(
               children: [
                 TextFormField(
                   controller: _clientCtrl,
-                  decoration: _inputDecoration('Select or type client name', Icons.person_outline),
+                  decoration: _inputDecoration('Select or type customer name', Icons.person_outline),
                   onChanged: (v) => setState(() => _showClientSuggestions = v.isNotEmpty),
                   onTap: () => setState(() => _showClientSuggestions = true),
                 ),

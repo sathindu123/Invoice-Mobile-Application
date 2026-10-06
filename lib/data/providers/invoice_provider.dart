@@ -12,6 +12,8 @@ class InvoiceProvider extends ChangeNotifier {
 
   String _searchQuery = '';
   String _selectedStatus = 'all'; // 'all', 'paid', 'pending', 'overdue'
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   List<Invoice> get invoices => _invoices;
   List<Client> get savedClients => _savedClients;
@@ -19,6 +21,9 @@ class InvoiceProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get searchQuery => _searchQuery;
   String get selectedStatus => _selectedStatus;
+  DateTime? get startDate => _startDate;
+  DateTime? get endDate => _endDate;
+  bool get hasDateFilter => _startDate != null || _endDate != null;
 
   // Public notify for external mutations (e.g., ManageContactsScreen)
   @override
@@ -53,6 +58,18 @@ class InvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setDateRange(DateTime? start, DateTime? end) {
+    _startDate = start;
+    _endDate = end;
+    notifyListeners();
+  }
+
+  void clearDateRange() {
+    _startDate = null;
+    _endDate = null;
+    notifyListeners();
+  }
+
   List<Invoice> get filteredInvoices {
     return _invoices.where((inv) {
       final matchesSearch = _searchQuery.isEmpty ||
@@ -62,7 +79,18 @@ class InvoiceProvider extends ChangeNotifier {
 
       final matchesStatus = _selectedStatus == 'all' || inv.status.toLowerCase() == _selectedStatus.toLowerCase();
 
-      return matchesSearch && matchesStatus;
+      bool matchesDate = true;
+      if (_startDate != null) {
+        final start = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+        final invDate = DateTime(inv.date.year, inv.date.month, inv.date.day);
+        if (invDate.isBefore(start)) matchesDate = false;
+      }
+      if (_endDate != null) {
+        final end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59);
+        if (inv.date.isAfter(end)) matchesDate = false;
+      }
+
+      return matchesSearch && matchesStatus && matchesDate;
     }).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
   }

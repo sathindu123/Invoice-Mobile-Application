@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/reminder_model.dart';
 import '../../data/providers/reminder_provider.dart';
+import '../widgets/pagination_bar.dart';
 import 'create_reminder_screen.dart';
 
 class RemindersScreen extends StatefulWidget {
@@ -16,6 +17,9 @@ class RemindersScreen extends StatefulWidget {
 class _RemindersScreenState extends State<RemindersScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int _pendingPage = 1;
+  int _completedPage = 1;
+  static const int _itemsPerPage = 10;
 
   @override
   void initState() {
@@ -64,8 +68,22 @@ class _RemindersScreenState extends State<RemindersScreen>
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildReminderList(context, provider.pendingReminders, provider, false),
-                      _buildReminderList(context, provider.completedReminders, provider, true),
+                      _buildReminderList(
+                        context,
+                        provider.pendingReminders,
+                        provider,
+                        isCompleted: false,
+                        currentPage: _pendingPage,
+                        onPageChanged: (p) => setState(() => _pendingPage = p),
+                      ),
+                      _buildReminderList(
+                        context,
+                        provider.completedReminders,
+                        provider,
+                        isCompleted: true,
+                        currentPage: _completedPage,
+                        onPageChanged: (p) => setState(() => _completedPage = p),
+                      ),
                     ],
                   ),
                 ),
@@ -77,9 +95,11 @@ class _RemindersScreenState extends State<RemindersScreen>
   Widget _buildReminderList(
     BuildContext context,
     List<Reminder> reminders,
-    ReminderProvider provider,
-    bool isCompleted,
-  ) {
+    ReminderProvider provider, {
+    required bool isCompleted,
+    required int currentPage,
+    required ValueChanged<int> onPageChanged,
+  }) {
     if (reminders.isEmpty) {
       return Center(
         child: Column(
@@ -115,13 +135,23 @@ class _RemindersScreenState extends State<RemindersScreen>
       );
     }
 
-    return ListView.builder(
+    final totalItems = reminders.length;
+    final totalPages = (totalItems / _itemsPerPage).ceil().clamp(1, 999999);
+    final clampedPage = currentPage > totalPages ? 1 : currentPage;
+    final startIndex = (clampedPage - 1) * _itemsPerPage;
+    final pageReminders = reminders.skip(startIndex).take(_itemsPerPage).toList();
+
+    return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
-      itemCount: reminders.length,
-      itemBuilder: (context, index) {
-        final reminder = reminders[index];
-        return _buildReminderCard(context, reminder, provider);
-      },
+      children: [
+        ...pageReminders.map((reminder) => _buildReminderCard(context, reminder, provider)),
+        PaginationBar(
+          currentPage: clampedPage,
+          totalItems: totalItems,
+          itemsPerPage: _itemsPerPage,
+          onPageChanged: onPageChanged,
+        ),
+      ],
     );
   }
 
